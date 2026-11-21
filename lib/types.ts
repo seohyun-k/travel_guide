@@ -66,6 +66,8 @@ export interface ResolvedPlace {
   ratingCount?: number;
   photoName?: string;
   photoAttribution?: string;
+  /** 브라우저 모드에서 받은 사진 URL */
+  photoUrl?: string;
   priceLevel?: string;
   message?: string;
   checkedAt: number;

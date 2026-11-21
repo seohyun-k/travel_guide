@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CATEGORY } from "@/lib/meta";
 import { useApi, useOnline } from "@/lib/trip";
+import { BASE_PATH } from "@/lib/env";
 import type { Place, ResolvedPlace } from "@/lib/types";
 import { cn } from "./ui";
 
@@ -24,10 +25,15 @@ export default function PlacePhoto({
   const online = useOnline();
   const [failed, setFailed] = useState(false);
   const cat = CATEGORY[place?.category ?? "event"];
+  const provider = useApi((s) => s.provider);
   const src =
-    server && online && resolved?.photoName && !failed
-      ? `/api/places/photo?name=${encodeURIComponent(resolved.photoName)}&w=${width}`
-      : null;
+    !server || !online || failed
+      ? null
+      : resolved?.photoUrl
+        ? resolved.photoUrl
+        : provider === "server" && resolved?.photoName
+          ? `${BASE_PATH}/api/places/photo?name=${encodeURIComponent(resolved.photoName)}&w=${width}`
+          : null;
   return (
     <div className={cn("relative overflow-hidden", className)} style={{ background: `linear-gradient(135deg, ${cat.bg}, #fff)` }}>
       {src ? (

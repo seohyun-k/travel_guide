@@ -6,44 +6,9 @@ import { useGeo } from "@/lib/geo-hook";
 import type { MapMarker, MapSegment } from "@/lib/mapdata";
 import { CATEGORY, LEG_MODE, vehicleMeta } from "@/lib/meta";
 import { fmtDuration } from "@/lib/time";
-import { MAP_ID, MAPS_KEY } from "@/lib/trip";
+import { MAP_ID } from "@/lib/env";
+import { authListeners, loadMaps, mapsAuthFailed } from "@/lib/gmaps-client";
 import type { RouteStep } from "@/lib/types";
-
-/* ── Maps JavaScript API 로더 ── */
-let loadPromise: Promise<void> | null = null;
-let authFailed = false;
-const authListeners = new Set<() => void>();
-
-function loadMaps(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (typeof (window as { google?: { maps?: { importLibrary?: unknown } } }).google?.maps?.importLibrary === "function") return Promise.resolve();
-  if (loadPromise) return loadPromise;
-  loadPromise = new Promise<void>((resolve, reject) => {
-    const w = window as unknown as Record<string, unknown>;
-    w.gm_authFailure = () => {
-      authFailed = true;
-      authListeners.forEach((f) => f());
-    };
-    w.__hkMapsReady = () => resolve();
-    const s = document.createElement("script");
-    const p = new URLSearchParams({
-      key: MAPS_KEY,
-      v: "weekly",
-      language: "ko",
-      region: "HK",
-      loading: "async",
-      callback: "__hkMapsReady",
-    });
-    s.src = `https://maps.googleapis.com/maps/api/js?${p}`;
-    s.async = true;
-    s.onerror = () => {
-      loadPromise = null;
-      reject(new Error("Google Maps 스크립트를 불러오지 못했습니다 (네트워크 확인)"));
-    };
-    document.head.appendChild(s);
-  });
-  return loadPromise;
-}
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -117,7 +82,7 @@ export default function GoogleMap({ markers, segments, selectedItemId, overview,
     let cancelled = false;
     const onAuth = () => onFail("Google Maps API 키 인증에 실패했습니다 (키 제한·결제 설정 확인)");
     authListeners.add(onAuth);
-    if (authFailed) onAuth();
+    if (mapsAuthFailed) onAuth();
     loadMaps()
       .then(async () => {
         if (cancelled || !ref.current) return;

@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const B = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "Hong Kong Trip 2026 · 홍콩 여행 플래너",
   description: "2026년 12월 1일~5일 홍콩 4박 5일 인터랙티브 여행 플래너",
-  manifest: "/manifest.webmanifest",
+  manifest: `${B}/manifest.webmanifest`,
   appleWebApp: { capable: true, title: "HK Trip", statusBarStyle: "default" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  icons: { icon: `${B}/icons/icon-192.png`, apple: `${B}/icons/apple-touch-icon.png` },
 };
 
 export const viewport: Viewport = {

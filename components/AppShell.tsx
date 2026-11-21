@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTrip } from "@/lib/store";
+import { BASE_PATH } from "@/lib/env";
 import { useApiBootstrap, useOnline, useResolveAll } from "@/lib/trip";
 import { useToast } from "./toast";
 import { Toast, cn } from "./ui";
@@ -48,7 +49,7 @@ export default function AppShell() {
     const h = location.hash.replace("#", "") as Tab;
     if (TABS.some((t) => t.key === h)) setTab(h);
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register(`${BASE_PATH}/sw.js`, { scope: `${BASE_PATH}/` }).catch(() => {});
     }
     return unsub;
   }, []);

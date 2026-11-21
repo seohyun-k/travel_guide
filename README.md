@@ -26,7 +26,29 @@
 - ‘코즈웨이베이 저녁’처럼 지역 단위 일정은 특정 식당을 지어내지 않고 지역으로 둡니다. 편집 → Google 장소 검색으로 실제 식당을 지정하세요.
 - 추천 메뉴·예상 비용·사진 스팟은 참고용 가이드입니다. 디즈니랜드 개장·공연 시간, 페리 시간표는 공식 사이트에서 확인 후 수정하세요.
 
-## 실행
+## 📱 폰에서 쓰기 — 웹사이트로 공개 (GitHub Pages, 무료)
+
+주소만 알면 누구나 폰 브라우저로 열 수 있고, ‘홈 화면에 추가’하면 앱처럼 설치됩니다.
+
+1. 이 브랜치를 `main` 에 병합합니다 (배포 워크플로는 `main` 에 푸시될 때 실행).
+2. 저장소 **Settings → Pages → Build and deployment → Source** 를 **GitHub Actions** 로 바꿉니다 (최초 1회).
+3. (선택, 권장) **Settings → Secrets and variables → Actions → New repository secret**
+   - 이름 `GOOGLE_MAPS_API_KEY`, 값: 브라우저용 키
+   - Google Cloud 에서 이 키를 **HTTP 리퍼러 `https://seohyun-k.github.io/*`** 로 제한하고, API 제한은 **Maps JavaScript API, Places API (New), Routes API** 를 허용
+   - 시크릿이 없어도 배포는 되며, 샘플 지도 모드로 동작합니다.
+4. **Actions → Deploy to GitHub Pages → Run workflow** (또는 main 에 푸시) → 몇 분 뒤
+   **https://seohyun-k.github.io/travel_guide/** 에서 열립니다.
+5. 폰에서 주소를 열고 **iPhone: 공유 → 홈 화면에 추가 / Android: ⋮ → 앱 설치**.
+
+> 정적 배포에서는 서버가 없으므로 장소 검증·검색·경로 계산을 **브라우저에서 Maps JavaScript API** 로 수행합니다
+> (서버 키 불필요). 브라우저 키는 웹페이지에 포함되므로 반드시 리퍼러 제한을 걸어 주세요.
+>
+> 일정·체크리스트·경비는 **각자의 폰에 따로 저장**됩니다. 동행과 같은 일정을 쓰려면
+> 설정 → JSON 내보내기 파일을 보내고, 받은 사람이 JSON 가져오기를 하면 됩니다.
+
+로컬에서 정적 빌드만 확인하려면: `npm run build:static` → `out/` 폴더.
+
+## 실행 (개발 / 서버 모드)
 
 ```bash
 npm install

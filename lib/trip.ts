@@ -4,35 +4,48 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { TRIP } from "./data/itinerary";
 import { PLACES } from "./data/places";
+import { BASE_PATH, MAPS_KEY, MAP_ID, STATIC_BUILD } from "./env";
 import { haversine, type LatLng } from "./geo";
+import { clientResolve, clientRoute } from "./gmaps-client";
 import { getPlace, useTrip } from "./store";
 import { hkIso, toHHMM, toMin } from "./time";
 import type { DayPlan, ItineraryItem, LegMode, Place, ResolvedPlace, RouteResult } from "./types";
 
 /* ───────────── API 설정 상태 ───────────── */
 
-export const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-export const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
+export { MAPS_KEY, MAP_ID };
 
+/**
+ * provider
+ *  - server: Next.js 서버 API(서버 키)로 Places·Routes 호출
+ *  - client: 브라우저에서 Maps JavaScript API(브라우저 키)로 호출 — 정적 배포용
+ *  - none:   키 없음 (샘플 모드)
+ */
+export type Provider = "server" | "client" | "none";
 interface ApiState {
-  server: boolean | null; // null = 확인 중
+  /** 장소 검증·경로 계산 사용 가능 여부 (null = 확인 중) */
+  server: boolean | null;
+  provider: Provider | null;
   checked: boolean;
-  setServer: (v: boolean) => void;
+  setProvider: (p: Provider) => void;
 }
 export const useApi = create<ApiState>((set) => ({
   server: null,
+  provider: null,
   checked: false,
-  setServer: (v) => set({ server: v, checked: true }),
+  setProvider: (p) => set({ provider: p, server: p !== "none", checked: true }),
 }));
 
 export function useApiBootstrap() {
-  const setServer = useApi((s) => s.setServer);
+  const setProvider = useApi((s) => s.setProvider);
   useEffect(() => {
-    fetch("/api/config")
-      .then((r) => r.json())
-      .then((j) => setServer(!!j.routes))
-      .catch(() => setServer(false));
-  }, [setServer]);
+    const fallback = () => setProvider(MAPS_KEY ? "client" : "none");
+    if (STATIC_BUILD) return fallback();
+    fetch(`${BASE_PATH}/api/config`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j) => (j.routes ? setProvider("server") : fallback()))
+      .catch(fallback);
+  }, [setProvider]);
 }
 
 /* ───────────── 온라인 상태 ───────────── */
@@ -82,7 +95,12 @@ export async function resolvePlace(key: string, force = false) {
   if (inflight.has(key)) return;
   inflight.add(key);
   try {
-    const res = await fetch("/api/places/resolve", {
+    if (useApi.getState().provider === "client") {
+      const r = await clientResolve({ query: p.query, placeId: p.placeId, expectArea: p.expectArea });
+      if (r.status !== "error" || !st.resolved[key]) useTrip.getState().setResolved(key, r);
+      return;
+    }
+    const res = await fetch(`${BASE_PATH}/api/places/resolve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: p.query, placeId: p.placeId, expectArea: p.expectArea }),
@@ -193,7 +211,17 @@ export async function fetchRoute(leg: Leg, date: string): Promise<RouteResult | 
   if (routeInflight.has(key)) return;
   routeInflight.add(key);
   try {
-    const res = await fetch("/api/routes", {
+    if (useApi.getState().provider === "client") {
+      const r = await clientRoute({
+        origin: { lat: leg.from.lat, lng: leg.from.lng, placeId: leg.from.verified ? leg.from.placeId : undefined },
+        destination: { lat: leg.to.lat, lng: leg.to.lng, placeId: leg.to.verified ? leg.to.placeId : undefined },
+        mode: leg.mode,
+        departureTime: hkIso(date, leg.departAt),
+      });
+      useTrip.getState().setRoute(key, r);
+      return r;
+    }
+    const res = await fetch(`${BASE_PATH}/api/routes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

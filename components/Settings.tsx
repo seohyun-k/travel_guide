@@ -24,6 +24,7 @@ interface BIPEvent extends Event {
 
 export default function Settings() {
   const server = useApi((s) => s.server);
+  const provider = useApi((s) => s.provider);
   const online = useOnline();
   const days = useTrip((s) => s.days);
   const custom = useTrip((s) => s.customPlaces);
@@ -91,8 +92,14 @@ export default function Settings() {
           <Status ok={!!MAPS_KEY} label="Google Maps JavaScript API" desc={MAPS_KEY ? "지도 키 설정됨 (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)" : "키 없음 — 샘플 지도(OpenStreetMap, 근사 위치)로 표시"} />
           <Status
             ok={server}
-            label="Places API · Routes API (서버)"
-            desc={server ? "서버 키 설정됨 — 장소 검증·실제 경로 계산 사용" : "GOOGLE_MAPS_SERVER_KEY 없음 — 장소 검증·경로 계산 비활성"}
+            label="장소 검증 · 경로 계산"
+            desc={
+              provider === "server"
+                ? "서버 모드 — Places API·Routes API (GOOGLE_MAPS_SERVER_KEY)"
+                : provider === "client"
+                  ? "브라우저 모드 — Maps JavaScript API의 Places·Directions 사용"
+                  : "API 키 없음 — 장소 검증·경로 계산 비활성"
+            }
           />
         </Card>
       </Section>

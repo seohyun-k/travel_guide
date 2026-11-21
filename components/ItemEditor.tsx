@@ -5,6 +5,8 @@ import { PLACES } from "@/lib/data/places";
 import { CATEGORY, LEG_MODE } from "@/lib/meta";
 import { getPlace, useTrip } from "@/lib/store";
 import { useApi, useOnline } from "@/lib/trip";
+import { BASE_PATH } from "@/lib/env";
+import { clientSearch } from "@/lib/gmaps-client";
 import { fmtDate, toMin } from "@/lib/time";
 import type { Category, ItineraryItem, LegMode, Place, ResolvedPlace } from "@/lib/types";
 import { Badge, Button, Field, Modal, cn, inputCls } from "./ui";
@@ -34,11 +36,17 @@ export function PlacePicker({ value, onChange }: { value: string | null; onChang
     setLoading(true);
     setErr(null);
     try {
-      const r = await fetch(`/api/places/search?q=${encodeURIComponent(q)}`);
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "검색 실패");
-      setResults(j.results ?? []);
-      if (!j.results?.length) setErr("홍콩 내 검색 결과가 없습니다");
+      let list: ResolvedPlace[];
+      if (useApi.getState().provider === "client") {
+        list = await clientSearch(q);
+      } else {
+        const r = await fetch(`${BASE_PATH}/api/places/search?q=${encodeURIComponent(q)}`);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "검색 실패");
+        list = j.results ?? [];
+      }
+      setResults(list);
+      if (!list.length) setErr("홍콩 내 검색 결과가 없습니다");
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -118,7 +126,7 @@ export function PlacePicker({ value, onChange }: { value: string | null; onChang
         </div>
       ) : (
         <div className="mt-2">
-          {!server && <p className="text-[12px] text-ink-mute">서버 키(GOOGLE_MAPS_SERVER_KEY)가 설정되어야 Google 장소 검색을 사용할 수 있습니다.</p>}
+          {!server && <p className="text-[12px] text-ink-mute">Google Maps API 키가 설정되어야 Google 장소 검색을 사용할 수 있습니다.</p>}
           {!online && <p className="text-[12px] text-ink-mute">오프라인 상태에서는 검색할 수 없습니다.</p>}
           {server && (
             <div className="mb-2 flex flex-wrap gap-1">
